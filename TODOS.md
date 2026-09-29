@@ -15,6 +15,25 @@ Pros: plan etapu 2 oparty na danych. Cons: wymaga ukończenia etapu 1c.
 **Priority:** P3
 **Depends on:** Etap 1 ukończony (1a-1c) i bramka go/no-go rozstrzygnięta na "etap 2"
 
+## Sprzęt
+
+### Wybór wyjścia audio na imprezę (głośnik)
+
+**What:** Zdecydować, jak podłączać głośniki na imprezie, i ewentualnie zmienić [decyzję 0005](docs/decisions/0005-scena-impreza-glosniki.md) nowym ADR.
+
+**Why:** Dostępny głośnik JBL Charge 5 ma tylko Bluetooth (brak AUX). Bluetooth dodaje 150-250 ms opóźnienia i jest drugim urządzeniem audio obok UMC22, czyli ma drugi zegar ([decyzja 0006](docs/decisions/0006-jedno-urzadzenie-audio-i-opoznienie.md)). Setup głośników będzie inny na każdej imprezie.
+
+**Context:** Opcje:
+1. głośnik lub wieża z AUX, podłączona kablem do wyjścia UMC22 (6,3 mm → 3,5 mm albo RCA);
+2. śpiewający w słuchawkach z UMC22, a publiczność słucha z głośnika BT (spójne dla publiczności, ale technicznie są dwa urządzenia wyjściowe);
+3. sam BT: odradzane.
+
+Sprzęt kupiony na start: Behringer XM8500 + UMC22 + kable XLR-XLR, jack-jack 6,3 mm, XLR-jack.
+
+**Effort:** S
+**Priority:** P2
+**Depends on:** przed blokiem J z [docs/reaper-setup.md](docs/reaper-setup.md)
+
 ## Completed
 
 ### Generator plików UltraStar z samego audio
