@@ -18,3 +18,4 @@ Każda ważna decyzja ma osobny plik. Decyzji nie zmieniamy po cichu: nowa decyz
 | [0012](0012-wspolny-parser-ultrastar.md) | Wspólny parser UltraStar | eng-review D4 |
 | [0013](0013-wykrywanie-kodowania.md) | Automatyczne wykrywanie kodowania | eng-review D5 |
 | [0014](0014-testy-pytest-i-fikstury.md) | Testy: pytest + syntetyczne fikstury | eng-review D6 |
+| [0015](0015-generator-ultrasongs.md) | Generator piosenek: ultrasongs zamiast własnego kodu | rozmowa 2026-09-29 |

@@ -16,3 +16,6 @@ Pros: plan etapu 2 oparty na danych. Cons: wymaga ukończenia etapu 1c.
 **Depends on:** Etap 1 ukończony (1a-1c) i bramka go/no-go rozstrzygnięta na "etap 2"
 
 ## Completed
+
+### Generator plików UltraStar z samego audio
+Zrobione przez użycie gotowego ultrasongs zamiast własnego kodu ([decyzja 0015](docs/decisions/0015-generator-ultrasongs.md), [instrukcja](docs/ultrasongs-setup.md)). Dodano `ultrastar2midi.py --octave auto` na konwencję oktaw ultrasongs. **Zamknięte:** 2026-09-29.

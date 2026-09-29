@@ -4,13 +4,13 @@ Karaoke, w którym brzmisz, jakbyś umiał śpiewać. Twój własny głos jest n
 
 ## Status
 
-**Etap 1: przygotowanie.** Projekt i przegląd techniczny są zatwierdzone. Kodu jeszcze nie ma.
+**Etap 1: w toku.** Narzędzia gotowe i przetestowane: parser UltraStar, konwerter MIDI z kontrolą wyrównania, podgląd tekstu, analiza nagrań. Generator piosenek przez ultrasongs. Dalej: pomiary opóźnienia i REAPER.
 
 | Etap | Co | Status |
 |---|---|---|
 | 1 | Pokaz z gotowych klocków (REAPER + MotTune MIDI) + nasze skrypty + pomiary | planowany |
 | 2 | Własna aplikacja: tryby Twardy / Łagodny / Ghost vocal | po bramce go/no-go |
-| 3 | Generator piosenek z pliku lub linku | aspiracyjny |
+| 3 | Generator piosenek z pliku lub linku | przez ultrasongs ([0015](docs/decisions/0015-generator-ultrasongs.md)); z linku: później |
 
 ## Jak to działa (etap 1)
 
@@ -54,4 +54,5 @@ docs/                         projekt, decyzje, pomiary, instrukcje
 - [docs/test-plan.md](docs/test-plan.md): plan testów
 - [docs/latency.md](docs/latency.md): pomiary opóźnienia
 - [docs/reaper-setup.md](docs/reaper-setup.md): ustawienie projektu REAPER
+- [docs/ultrasongs-setup.md](docs/ultrasongs-setup.md): generator plików UltraStar z audio + tekstu
 - [TODOS.md](TODOS.md): rzeczy na później

@@ -1,0 +1,16 @@
+Metadata-Version: 2.4
+Name: karaokebooster
+Version: 0.1.0
+Summary: Korekcja wysokości głosu do melodii piosenki (UltraStar) na pokaz karaoke
+Requires-Python: <3.12,>=3.11
+Requires-Dist: mido>=1.3
+Requires-Dist: python-osc>=1.8
+Requires-Dist: numpy>=1.26
+Requires-Dist: soundfile>=0.12
+Provides-Extra: ml
+Requires-Dist: torch; extra == "ml"
+Requires-Dist: torchaudio; extra == "ml"
+Requires-Dist: demucs>=4.0; extra == "ml"
+Requires-Dist: torchcrepe>=0.0.22; extra == "ml"
+Provides-Extra: dev
+Requires-Dist: pytest>=8; extra == "dev"

@@ -1,0 +1,15 @@
+#TITLE:Testowa piosenka
+#ARTIST:Ktoś
+#MP3:song.mp3
+#BPM:300
+#GAP:1000
+: 0 4 5 Za
+: 4 4 7 żó
+* 8 8 9 łć
+- 20
+F 24 4 0 hej
+R 28 2 0 rap
+G 30 2 0 go
+: 32 4 -12 gęś
+E
+: 99 1 0 po_końcu
