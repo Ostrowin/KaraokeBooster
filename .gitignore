@@ -18,6 +18,12 @@ recordings/
 *.rpp-bak
 *.reapeaks
 
+# IDE
+.vs/
+.vscode/
+.idea/
+*.user
+
 # System
 Thumbs.db
 desktop.ini

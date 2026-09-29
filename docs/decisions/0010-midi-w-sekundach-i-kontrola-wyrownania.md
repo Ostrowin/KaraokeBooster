@@ -1,6 +1,6 @@
 # 0010. MIDI w sekundach przy stałym tempie i kontrola wyrównania
 
-- Status: przyjęta
+- Status: przyjęta; mechanizm kontroli wyrównania zastąpiony przez [0016](0016-kontrola-wyrownania-po-wysokosci.md)
 - Data: 2026-09-28
 - Źródło: /plan-eng-review, D2
 

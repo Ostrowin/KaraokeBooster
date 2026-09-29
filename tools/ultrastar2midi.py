@@ -37,6 +37,8 @@ def main(argv: list[str] | None = None) -> int:
                    help="scal nuty krótsze niż tyle ms z poprzednią")
     p.add_argument("--vocals", type=Path, help="vocals.wav z Demucs do kontroli wyrównania")
     p.add_argument("--tolerance-ms", type=float, default=30.0)
+    p.add_argument("--engine", choices=["crepe", "yin"], default="crepe",
+                   help="odczyt wysokości do kontroli wyrównania (crepe = GPU; bez PyTorcha automatycznie yin)")
     args = p.parse_args(argv)
 
     with warnings.catch_warnings(record=True) as caught:
@@ -63,8 +65,16 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Zapisano {out} ({note_count(song)} nut, oktawa {octave:+d}{how}, kodowanie {song.encoding}).")
 
     if args.vocals:
+        engine = args.engine
+        if engine == "crepe":
+            try:
+                import torchcrepe  # noqa: F401
+            except ImportError:
+                print("Brak torchcrepe (grupa ml): kontrola wyrównania przez yin (wolniej).", file=sys.stderr)
+                engine = "yin"
+        print(f"Sprawdzam wyrównanie ({engine})...")
         try:
-            report = check_alignment(song, args.vocals, tolerance_ms=args.tolerance_ms)
+            report = check_alignment(song, args.vocals, tolerance_ms=args.tolerance_ms, engine=engine)
         except (OSError, RuntimeError) as e:
             print(f"BŁĄD odczytu wokalu: {e}", file=sys.stderr)
             return EXIT_ERROR
