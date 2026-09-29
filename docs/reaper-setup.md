@@ -58,8 +58,11 @@ Bez kabla: klaśnij przy mikrofonie w słuchawkach, nagraj i porównaj z metrono
   - `…_accompaniment.mp3` na ścieżkę **Podkład**;
   - `…_vocals.mp3` na ścieżkę **Ghost** (na razie wyciszoną, M);
   - `za-toba.mid` na ścieżkę **Wokal**. Przy pytaniu o tempo: **nie importuj** mapy tempa ([decyzja 0010](decisions/0010-midi-w-sekundach-i-kontrola-wyrownania.md)).
-- [ ] Na ścieżkach Podkład i Ghost: prawy klik na ścieżce → Track timebase → **Time**.
+- [ ] File → Project settings (Alt+Enter): **Timebase for items/envelopes/markers: Time**.
+- [ ] Wyciszanie ścieżki to **przycisk M na panelu ścieżki**, nie klawisz M (klawisz M wstawia znacznik na osi czasu).
+- [ ] Jeśli REAPER nie zapyta o tempo przy imporcie MIDI, to w porządku: plik ma tempo 120 BPM, takie samo jak projekt.
 - [ ] **Sprawdź:** Play. Pierwsze nuty MIDI (kreski na ścieżce Wokal) zaczynają się tam, gdzie Krawczyk zaczyna śpiewać (ok. 32 s).
+  Zaliczone 2026-09-29 dla "Za tobą pójdę jak na bal".
 
 ## Blok E: korektor na ścieżce Wokal (ok. 20 min)
 
@@ -107,7 +110,7 @@ Ghost to cichy oryginalny wokal, który przycicha, gdy śpiewasz ([decyzja 0007]
 
 ## Blok H: tekst na ekranie (ok. 10 min)
 
-- [ ] REAPER: Options → Preferences → Control/OSC/web → **Add** → Control surface mode: **OSC**. Pattern config: **Default**. Mode: Configure device IP + local port. Device IP: **127.0.0.1**, Device port: **9000**. Zaznacz wysyłanie.
+- [ ] REAPER: Options → Preferences → Control/OSC/web → **Add** → Control surface mode: **OSC (Open Sound Control)**. Lista zawiera głównie kontrolery sprzętowe, więc OSC trzeba znaleźć przewijając (albo wcisnąć O po rozwinięciu). Pattern config: **Default**. Mode: Configure device IP + local port. Device IP: **127.0.0.1**, Device port: **9000**. Zaznacz wysyłanie.
 - [ ] W terminalu:
   ```bash
   cd C:\Projects\Private\KaraokeBooster
@@ -115,6 +118,7 @@ Ghost to cichy oryginalny wokal, który przycicha, gdy śpiewasz ([decyzja 0007]
   ```
 - [ ] **Sprawdź:** Play w REAPER. Tekst przewija się razem z muzyką, pauza go zatrzymuje, przewinięcie przeskakuje.
   Jeśli tekst wyprzedza dźwięk, uruchom podgląd z `--offset-ms` równym opóźnieniu wyjścia z bloku B.
+  Zaliczone 2026-09-29.
 
 ## Blok I: nagrania do analizy (ok. 20 min)
 
