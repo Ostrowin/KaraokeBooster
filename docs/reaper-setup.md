@@ -18,7 +18,8 @@ Pojęcia (bufor, PDC, sidechain, CC) wyjaśnia [glossary.md](glossary.md).
 - [ ] **ASIO4ALL** z https://asio4all.org: sterownik niskiego opóźnienia dla wbudowanej karty Realtek. Niepotrzebny, jeśli masz interfejs audio USB z własnym sterownikiem ASIO.
 - [ ] **MotTune MIDI**: darmowa wtyczka. Źródło: ogłoszenia z 2026-09-05 (bedroomproducersblog.com, rekkerd.org) prowadzą do strony autora. Pobieraj tylko stamtąd. Zainstaluj wersję **VST3 64-bit**.
 - [ ] W REAPER: Options → Preferences → Plug-ins → VST → **Re-scan**.
-- [ ] **Sprawdź:** Insert → Virtual instrument on new track → w liście wtyczek jest MotTune.
+- [ ] **Sprawdź:** nowa ścieżka (Ctrl+T) → przycisk **FX** → w polu wyszukiwania wpisz "MotTune" → jest **VST3: MotTune MIDI (MotTune)**. To efekt, więc **nie ma go** w Insert → Virtual instrument (tam są tylko instrumenty).
+  Wtyczka instaluje się do `C:\Program Files\Common Files\VST3\MotTune MIDI.vst3`.
   Jeśli nie ma wersji Windows albo VST3, **stop**: zapisz to i przejdź do rozmowy (plan B w [design.md](design.md), krok 2).
 
 ## Blok B: urządzenie audio (ok. 10 min)
@@ -65,7 +66,15 @@ Bez kabla: klaśnij przy mikrofonie w słuchawkach, nagraj i porównaj z metrono
 Na ścieżce Wokal są naraz nuty MIDI i Twój mikrofon. Nuty sterują wtyczką, a mikrofon przez nią przechodzi.
 
 - [ ] Wejście ścieżki: mikrofon (Mono), **Record arm** + **monitoring włączony** (ikonka głośnika), a do tego ustaw "Record: disable (input monitoring only)", żeby nie nagrywać przy próbach.
-- [ ] FX ścieżki (przycisk FX): dodaj **MotTune MIDI** i ustaw tryb **MIDI** (nie skala), retune na najszybszy = tryb twardy.
+- [ ] FX ścieżki (przycisk FX albo klawisz **F** na zaznaczonej ścieżce): dodaj **MotTune MIDI** (v1.2.0) i ustaw:
+  - przełącznik u góry: **Real Time** (nie Studio; Studio ma bufor wyprzedzenia);
+  - **MIDI Input**: zaznaczone (Key/Scale robią się wtedy szare, a nuty idą z MIDI);
+  - **Pitch Lock**: 100 (pełne przyciągnięcie do nuty = tryb twardy);
+  - **Retune Speed**: 100 na start. Kierunek skali jest niepotwierdzony, więc porównaj uchem z 20 i zapisz, która wartość daje szybsze "przeskoki";
+  - **Formant A / Formant B**: 0,0 (bez zmiany barwy);
+  - **Balance A-B**: sprawdź, przy której skrajnej wartości słychać Twój poprawiony głos, a przy której wokoder; ustaw na głos;
+  - sekcja **VOCODER SOUND**: nieużywana, **Volume** = 0,0.
+- [ ] Opóźnienie wtyczki: pasek na dole okna FX pokazuje "…/… spls". **0/0 spls = 0 próbek** (zmierzone 2026-09-29, Real Time).
 - [ ] Załóż słuchawki (w tym bloku bez głośników, żeby nie było sprzężenia). Play i śpiewaj z Krawczykiem.
 - [ ] **Sprawdź i zapisz** (to weryfikacja z kroku 2 [design.md](design.md)):
   - [ ] głos jest ściągany do nut z pliku (śpiewaj celowo obok);

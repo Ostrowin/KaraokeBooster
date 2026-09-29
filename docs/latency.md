@@ -30,6 +30,12 @@ Częstotliwość próbkowania: 48 kHz.
 | | 1: interfejs USB | ASIO producenta | 128 | | | | | | |
 | | 2 urządzenia (kontrola) | ASIO4ALL | 128 | | | | | | oczekiwany dryf |
 
+## PDC wtyczek
+
+| Data | Wtyczka | Tryb | PDC | Źródło |
+|---|---|---|---|---|
+| 2026-09-29 | MotTune MIDI v1.2.0 | Real Time | 0 próbek | pasek okna FX w REAPER: "0/0 spls" |
+
 ## Wniosek
 
 _(Uzupełnić po pomiarach: wybrana topologia i bufor.)_
