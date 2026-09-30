@@ -13,11 +13,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from karaokebooster.alignment import check_alignment  # noqa: E402
+from karaokebooster.alignment import available_engine, check_alignment  # noqa: E402
 from karaokebooster.midi_export import (  # noqa: E402
     DEFAULT_VOICE_CENTER,
-    auto_octave,
     note_count,
+    resolve_octave,
     song_to_midi,
 )
 from karaokebooster.ultrastar import UltraStarError, UltraStarWarning, load  # noqa: E402
@@ -45,13 +45,7 @@ def main(argv: list[str] | None = None) -> int:
         warnings.simplefilter("always", UltraStarWarning)
         try:
             song = load(args.song)
-            if args.octave == "auto":
-                octave = auto_octave(song, args.voice_center)
-            else:
-                try:
-                    octave = int(args.octave)
-                except ValueError:
-                    raise ValueError(f"--octave musi być liczbą albo 'auto', a jest {args.octave!r}") from None
+            octave = resolve_octave(song, args.octave, args.voice_center)
             mid = song_to_midi(song, octave=octave, merge_below_ms=args.merge_ms)
         except (UltraStarError, ValueError, OSError) as e:
             print(f"BŁĄD: {e}", file=sys.stderr)
@@ -65,13 +59,9 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Zapisano {out} ({note_count(song)} nut, oktawa {octave:+d}{how}, kodowanie {song.encoding}).")
 
     if args.vocals:
-        engine = args.engine
-        if engine == "crepe":
-            try:
-                import torchcrepe  # noqa: F401
-            except ImportError:
-                print("Brak torchcrepe (grupa ml): kontrola wyrównania przez yin (wolniej).", file=sys.stderr)
-                engine = "yin"
+        engine, note = available_engine(args.engine)
+        if note:
+            print(note, file=sys.stderr)
         print(f"Sprawdzam wyrównanie ({engine})...")
         try:
             report = check_alignment(song, args.vocals, tolerance_ms=args.tolerance_ms, engine=engine)

@@ -34,6 +34,37 @@ Sprzęt kupiony na start: Behringer XM8500 + UMC22 + kable XLR-XLR, jack-jack 6,
 **Priority:** P2
 **Depends on:** przed blokiem J z [docs/reaper-setup.md](docs/reaper-setup.md)
 
+## Song Studio
+
+### Potok Song Studio z terminala (`tools/add_song.py`)
+
+**What:** Wersja potoku Song Studio uruchamiana z terminala, obok okienka.
+
+**Why:** Zapasowa droga, gdy okienko ma błąd, i wygoda przy testach. Odłożona w przeglądzie technicznym (D8, 2026-09-30), bo dwa procesy na jednym potoku wymagają zabezpieczeń.
+
+**Context:** Projekt: [docs/designs/song-studio.md](docs/designs/song-studio.md). Przy dodawaniu obowiązkowo (uwagi recenzenta R2-1, R2-2, R2-3, R2-10):
+1. blokada per piosenka (`songs/<slug>/.lock`, tworzona atomowo) i zachowanie okienka, gdy piosenka jest przetwarzana gdzie indziej;
+2. blokada GPU trzymana przez system (np. `msvcrt.locking` na otwartym pliku), a nie sam numer PID, bo Windows używa numerów ponownie;
+3. odświeżanie biblioteki (co ok. 2 s albo przy aktywacji okna), żeby okienko widziało zmiany z terminala.
+Pros: druga droga uruchomienia. Cons: ok. 1 dzień pracy (CC ~20 min) i testy współbieżności.
+
+**Effort:** S
+**Priority:** P3
+**Depends on:** działające Song Studio (okienko)
+
+### Szafa grająca w telefonach gości
+
+**What:** Mała strona www na laptopie: goście skanują kod QR, wybierają piosenkę z biblioteki i zapisują się w kolejce śpiewających.
+
+**Why:** Największe "wow" na imprezie; odłożone w /office-hours (sposób C), bo sieć i zapora przed sprawdzeniem samego pokazu.
+
+**Context:** Stoi na bibliotece i `song.json` z Song Studio ([projekt](docs/designs/song-studio.md), "Approaches Considered"). Ryzyka: Wi-Fi na imprezie, zapora Windows dla lokalnego serwera, kolejność śpiewających. Dodawanie piosenek zostaje przy laptopie.
+Pros: goście sami wybierają. Cons: serwer + sieć (CC ~3-4 h).
+
+**Effort:** M
+**Priority:** P3
+**Depends on:** działające Song Studio i pierwsza udana impreza
+
 ## Completed
 
 ### Generator plików UltraStar z samego audio

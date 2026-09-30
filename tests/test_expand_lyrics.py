@@ -1,8 +1,10 @@
 import sys
 from pathlib import Path
 
+from karaokebooster.lyrics_text import expand
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
-from expand_lyrics import expand, main  # noqa: E402
+from expand_lyrics import main  # noqa: E402
 
 
 def test_no_markers_unchanged():

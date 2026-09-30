@@ -92,6 +92,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--offset-ms", type=float, default=0.0,
                    help="opóźnij tekst o tyle ms (np. opóźnienie wyjścia audio)")
     p.add_argument("--demo", action="store_true", help="bez REAPER: startuje od 0 s")
+    p.add_argument("--fullscreen", action="store_true", help="pełny ekran (Esc zamyka)")
     args = p.parse_args(argv)
 
     try:
@@ -116,6 +117,9 @@ def main(argv: list[str] | None = None) -> int:
 
     root = tk.Tk()
     app = ViewerApp(root, song, clock, lock)
+    if args.fullscreen:
+        root.attributes("-fullscreen", True)
+        root.bind("<Escape>", lambda _e: root.destroy())
     if args.demo:
         def keepalive():
             with lock:

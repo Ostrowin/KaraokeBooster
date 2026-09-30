@@ -1,0 +1,43 @@
+<REAPER_PROJECT 0.1 "7.81/win64" 1790672600 0
+  <NOTES 0 2
+  >
+  TEMPO 120 4 4 0
+  RECORD_PATH "Media" ""
+  MARKER 1 4.36 "" 0 0 1 R {BCA12521-D6B7-4DCE-BCD2-D7B209F15736} 0 2
+  <TRACK {7D2243C1-5795-4652-AE13-02509A632F6A}
+    NAME Podklad
+    VOLPAN 1 0 -1 -1 1
+    <ITEM
+      POSITION 0
+      LENGTH 238.5
+      NAME "stary podkład.mp3"
+      <SOURCE MP3
+        FILE "Media\stary podkład.mp3" 1
+      >
+    >
+  >
+  <TRACK {4D456155-0960-4CFE-A843-5FBA234B581A}
+    NAME ghost
+    VOLPAN 0.25 0 -1 -1 1
+  >
+  <TRACK {FF038A5B-5665-4A71-B603-8DDCEA0531D6}
+    NAME wokal
+    <FXCHAIN
+      SHOW 0
+      <VST "VST3: MotTune MIDI (MotTune)" "MotTune MIDI.vst3" 0 "" 1{ABCDEF}
+        ZmFrZSBzdGF0ZQ==
+      >
+    >
+    <ITEM
+      POSITION 0
+      LENGTH 236
+      <SOURCE MIDI
+        HASDATA 1 960 QN
+        E 0 b0 55 7f
+        <X 0 0 0 0 5 Ty
+          /wVUeQ==
+        >
+      >
+    >
+  >
+>

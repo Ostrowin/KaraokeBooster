@@ -163,6 +163,16 @@ def check_alignment_samples(song: Song, samples: np.ndarray, sr: int, tolerance_
     return check_alignment_pitch(song, times, f0, conf, tolerance_ms)
 
 
+def available_engine(engine: str) -> tuple[str, str | None]:
+    """(silnik do użycia, komunikat o zamianie albo None). crepe bez torchcrepe → yin."""
+    if engine == "crepe":
+        try:
+            import torchcrepe  # noqa: F401
+        except ImportError:
+            return "yin", "Brak torchcrepe (grupa ml): kontrola wyrównania przez yin (wolniej)."
+    return engine, None
+
+
 def check_alignment(song: Song, vocals_path: str | Path, tolerance_ms: float = 30.0,
                     engine: str = "crepe") -> AlignmentReport:
     samples, sr = sf.read(str(vocals_path), always_2d=False)

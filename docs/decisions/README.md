@@ -20,3 +20,4 @@ Każda ważna decyzja ma osobny plik. Decyzji nie zmieniamy po cichu: nowa decyz
 | [0014](0014-testy-pytest-i-fikstury.md) | Testy: pytest + syntetyczne fikstury | eng-review D6 |
 | [0015](0015-generator-ultrasongs.md) | Generator piosenek: ultrasongs zamiast własnego kodu | rozmowa 2026-09-29 |
 | [0016](0016-kontrola-wyrownania-po-wysokosci.md) | Kontrola wyrównania po wysokości (zastępuje mechanizm z 0010) | test na prawdziwej piosence |
+| [0017](0017-song-studio-okienko-i-biblioteka.md) | Song Studio: okienko z kolejką i biblioteką w etapie 1 | office-hours + eng-review 2026-09-30 |

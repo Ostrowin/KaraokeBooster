@@ -9,26 +9,12 @@ Użycie:
 
 from __future__ import annotations
 
-import re
 import sys
 from pathlib import Path
 
-MARKER = re.compile(r"\s*/x(\d+)\s*$", re.IGNORECASE)
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-
-def expand(text: str) -> str:
-    out = []
-    for stanza in re.split(r"\n\s*\n", text.replace("\r\n", "\n").strip()):
-        lines = [l.rstrip() for l in stanza.strip().splitlines()]
-        for i, line in enumerate(lines):
-            m = MARKER.search(line)
-            if m:
-                block = lines[:i] + [line[: m.start()]]
-                out.append("\n".join(block * int(m.group(1)) + lines[i + 1:]))
-                break
-        else:
-            out.append("\n".join(lines))
-    return "\n\n".join(out) + "\n"
+from karaokebooster.lyrics_text import expand  # noqa: E402
 
 
 def main(argv: list[str] | None = None) -> int:

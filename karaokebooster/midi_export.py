@@ -49,6 +49,16 @@ def auto_octave(song: Song, voice_center: int = DEFAULT_VOICE_CENTER) -> int:
     return round((voice_center - median) / 12)
 
 
+def resolve_octave(song: Song, octave: str | int = "auto", voice_center: int = DEFAULT_VOICE_CENTER) -> int:
+    """'auto' → auto_octave; liczba (także jako tekst) → ta liczba; inaczej ValueError."""
+    if octave == "auto":
+        return auto_octave(song, voice_center)
+    try:
+        return int(octave)
+    except ValueError:
+        raise ValueError(f"--octave musi być liczbą albo 'auto', a jest {octave!r}") from None
+
+
 @dataclass(frozen=True)
 class TargetNote:
     start_s: float

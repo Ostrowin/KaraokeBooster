@@ -27,3 +27,5 @@ recordings/
 # System
 Thumbs.db
 desktop.ini
+# Lokalna konfiguracja Song Studio
+karaokebooster.local.toml

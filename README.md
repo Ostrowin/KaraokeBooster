@@ -4,7 +4,7 @@ Karaoke, w którym brzmisz, jakbyś umiał śpiewać. Twój własny głos jest n
 
 ## Status
 
-**Etap 1: w toku.** Narzędzia gotowe i przetestowane: parser UltraStar, konwerter MIDI z kontrolą wyrównania, podgląd tekstu, analiza nagrań. Generator piosenek przez ultrasongs. Dalej: pomiary opóźnienia i REAPER.
+**Etap 1: w toku.** Narzędzia gotowe i przetestowane: parser UltraStar, konwerter MIDI z kontrolą wyrównania, podgląd tekstu, analiza nagrań. Generator piosenek przez ultrasongs, z okienkiem **Song Studio** (mp3 + tekst → gotowa piosenka w REAPER). Dalej: pomiary opóźnienia i REAPER.
 
 | Etap | Co | Status |
 |---|---|---|
@@ -39,6 +39,8 @@ py -3.11 -m venv .venv
 
 ```
 karaokebooster/ultrastar.py   wspólny parser plików UltraStar
+tools/song_studio.py          okienko: nowa piosenka z mp3 + biblioteka (Śpiewaj)
+karaokebooster/pipeline.py    potok Song Studio (ultrasongs → MIDI → projekt REAPER)
 tools/ultrastar2midi.py       UltraStar → MIDI + kontrola wyrównania
 tools/lyrics_viewer.py        tekst zsynchronizowany z REAPER (OSC)
 tools/analyze_takes.py        analiza nagrań: jak daleko od nut
@@ -55,4 +57,5 @@ docs/                         projekt, decyzje, pomiary, instrukcje
 - [docs/latency.md](docs/latency.md): pomiary opóźnienia
 - [docs/reaper-setup.md](docs/reaper-setup.md): ustawienie projektu REAPER
 - [docs/ultrasongs-setup.md](docs/ultrasongs-setup.md): generator plików UltraStar z audio + tekstu
+- [docs/song-studio.md](docs/song-studio.md): Song Studio, nowa piosenka z mp3 jednym kliknięciem
 - [TODOS.md](TODOS.md): rzeczy na później

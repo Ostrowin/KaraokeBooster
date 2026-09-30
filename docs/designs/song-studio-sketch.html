@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Szkic Song Studio</title>
+<!-- Szkic, nie projekt graficzny: tkinter, systemowe czcionki, szare ramki. -->
+<style>
+:root{--b:#888;--t:#222;--m:#666;--bg:#fff;--f:#f3f3f3}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--b:#777;--t:#eee;--m:#aaa;--bg:#1b1b1b;--f:#2a2a2a}}
+body{font:14px system-ui,sans-serif;color:var(--t);background:var(--bg);margin:0;padding:16px}
+.win{max-width:760px;margin:0 auto 28px;border:1.5px solid var(--b);border-radius:4px}
+.bar{padding:6px 10px;border-bottom:1.5px solid var(--b);background:var(--f);font-weight:600}
+.tabs{display:flex;gap:4px;padding:8px 10px 0}.tab{border:1.5px solid var(--b);border-bottom:none;padding:4px 12px;border-radius:4px 4px 0 0;color:var(--m)}.tab.on{color:var(--t);font-weight:600;background:var(--f)}
+.body{border-top:1.5px solid var(--b);padding:12px}
+.row{display:flex;gap:8px;align-items:center;margin:6px 0;flex-wrap:wrap}.row label{width:110px;color:var(--m)}
+.in{flex:1;min-width:160px;border:1px solid var(--b);padding:4px 6px;border-radius:3px}
+.btn{border:1.5px solid var(--b);padding:4px 10px;border-radius:3px;background:var(--f);white-space:nowrap}.btn.main{font-weight:700}
+textarea{width:100%;box-sizing:border-box;height:110px;border:1px solid var(--b);background:transparent;color:var(--t);font:13px ui-monospace,monospace;padding:6px}
+table{width:100%;border-collapse:collapse}td,th{border-bottom:1px dashed var(--b);padding:6px 4px;text-align:left;vertical-align:middle}th{color:var(--m);font-weight:500}
+.prog{height:8px;border:1px solid var(--b);width:120px;display:inline-block;vertical-align:middle}.prog i{display:block;height:100%;background:var(--m)}
+.note{color:var(--m);font-size:12px}h2{font-size:15px;margin:0 0 10px}
+.wrap{overflow-x:auto}
+</style></head><body>
+
+<div class="win"><div class="bar">KaraokeBooster: Song Studio</div>
+<div class="tabs"><span class="tab on">Dodaj piosenkę</span><span class="tab">Biblioteka</span></div>
+<div class="body">
+  <div class="row"><label>Plik audio</label><span class="in">C:\Users\lucci\Music\Krawczyk - Parostatek.mp3</span><span class="btn">Wybierz…</span></div>
+  <!-- Wykonawca/tytuł wstępnie z nazwy pliku ("X - Y.mp3") albo tagów ID3; do poprawienia ręcznie. -->
+  <div class="row"><label>Wykonawca</label><span class="in">Krzysztof Krawczyk</span></div>
+  <div class="row"><label>Tytuł</label><span class="in">Parostatek</span></div>
+  <div class="row"><label>Tekst</label><span class="btn">Pobierz z tekstowo.pl</span><span class="note">wypełnia pole poniżej; sprawdź przed startem</span></div>
+  <textarea>Parostatek piękny płynie...
+(tu wklejony albo pobrany tekst, linia po linii; skróty /x2 rozwijane automatycznie)</textarea>
+  <!-- Jakość = liczba przebiegów ultrasongs. Szybka 3/3, dokładna 7/5 (domyślne ultrasongs). -->
+  <div class="row"><label>Jakość</label><span class="btn">● Szybka (~30-40 min)</span><span class="btn">○ Dokładna (~1-2 h)</span></div>
+  <div class="row" style="justify-content:flex-end"><span class="btn main">Dodaj do kolejki</span></div>
+  <hr style="border:none;border-top:1.5px solid var(--b)">
+  <h2>Kolejka</h2>
+  <div class="wrap"><table>
+    <tr><th>Piosenka</th><th>Krok</th><th>Postęp</th><th></th></tr>
+    <tr><td>Krawczyk – Parostatek</td><td>2/5 ultrasongs: rozpoznawanie (przebieg 2/3)</td><td><span class="prog"><i style="width:45%"></i></span></td><td><span class="btn">Log</span></td></tr>
+    <tr><td>Krawczyk – Mój przyjacielu</td><td>czeka</td><td><span class="prog"></span></td><td><span class="btn">Usuń</span></td></tr>
+  </table></div>
+</div></div>
+
+<div class="win"><div class="bar">KaraokeBooster: Song Studio</div>
+<div class="tabs"><span class="tab">Dodaj piosenkę</span><span class="tab on">Biblioteka</span></div>
+<div class="body">
+  <div class="wrap"><table>
+    <tr><th>Piosenka</th><th>Status</th><th></th></tr>
+    <tr><td>Krawczyk – Za tobą pójdę jak na bal</td><td>✔ gotowa (wyrównanie +20 ms)</td><td><span class="btn main">Śpiewaj</span></td></tr>
+    <!-- Ostrzeżenie z kontroli wyrównania (ADR 0016) nie blokuje, ale jest widoczne. -->
+    <tr><td>Krawczyk – Parostatek</td><td>⚠ do sprawdzenia: popraw #GAP o +60 ms</td><td><span class="btn">Edytor nut</span> <span class="btn">Przelicz</span> <span class="btn">Śpiewaj</span></td></tr>
+    <tr><td>Krawczyk – Mój przyjacielu</td><td>✖ błąd w kroku 2 (ultrasongs)</td><td><span class="btn">Log</span> <span class="btn">Wznów</span></td></tr>
+  </table></div>
+  <div class="row" style="justify-content:space-between;margin-top:12px">
+    <span class="note">Szablon: songs\_szablon.rpp (zmieniony 2026-10-05)</span>
+    <span class="btn">Odśwież projekty z szablonu</span>
+  </div>
+  <p class="note">"Śpiewaj" = otwiera projekt w REAPER + podgląd tekstu na pełnym ekranie (Esc zamyka).</p>
+</div></div>
+</body></html>
