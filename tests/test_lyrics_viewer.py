@@ -161,3 +161,64 @@ def test_cli_bad_file(tmp_path, capsys):
     bad.write_text("#TITLE:x\n", encoding="utf-8")
     assert lyrics_viewer.main([str(bad)]) == 1
     assert "BŁĄD" in capsys.readouterr().err
+
+
+# --- dopasowanie czcionki i sterowanie REAPER --------------------------------------
+
+from karaokebooster.lyrics import fit_font_size, line_texts  # noqa: E402
+
+
+def fake_measure(size, text):
+    return size * len(text)  # 1 znak = `size` pikseli
+
+
+def test_fit_font_size_shrinks_to_longest_line():
+    texts = ["krótka", "a" * 50, "b" * 20]
+    assert fit_font_size(texts, fake_measure, width=1000, max_size=40) == 20
+    assert fit_font_size(texts, fake_measure, width=5000, max_size=40) == 40
+
+
+def test_fit_font_size_respects_minimum_and_empty():
+    assert fit_font_size(["x" * 1000], fake_measure, width=100, max_size=40, min_size=12) == 12
+    assert fit_font_size([], fake_measure, width=100, max_size=40) == 40
+
+
+def test_fit_font_size_checks_widest_not_only_longest():
+    measure = lambda size, t: size * sum(3 if c == "W" else 1 for c in t)  # noqa: E731
+    assert fit_font_size(["iiiiiiiiii", "WWWW"], measure, width=240, max_size=40) == 20
+
+
+def test_line_texts():
+    assert line_texts(phrases(parse(SONG))) == ["Zażółć", "gęślą"]
+
+
+def test_reaper_remote_sends_action():
+    from pythonosc.dispatcher import Dispatcher
+    from pythonosc.osc_server import ThreadingOSCUDPServer
+    got = []
+    d = Dispatcher()
+    d.map("/action", lambda addr, *a: got.append(a))
+    server = ThreadingOSCUDPServer(("127.0.0.1", 0), d)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        remote = lyrics_viewer.ReaperRemote(server.server_address[1])
+        assert remote.action(lyrics_viewer.ACTION_PLAY_PAUSE)
+        for _ in range(100):
+            if got:
+                break
+            time.sleep(0.01)
+        assert got == [(40073,)]
+    finally:
+        server.shutdown()
+
+
+def test_reaper_remote_disabled():
+    assert not lyrics_viewer.ReaperRemote(0).action(lyrics_viewer.ACTION_PLAY_PAUSE)
+
+
+def test_tilde_hidden_on_screen():
+    song = parse("#BPM:300\n#GAP:0\n: 0 4 0 powie\n: 4 4 0 ~dzieć\n: 8 4 0 ~\n- 20\n: 30 4 0 cią~gnie\nE\n")
+    lines = phrases(song)
+    assert line_texts(lines) == ["powiedzieć", "ciągnie"]
+    v = view_at(lines, 0.1)
+    assert "".join(s.text for s in v.line) == "powiedzieć" and v.next_line == "ciągnie"

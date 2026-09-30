@@ -84,10 +84,10 @@ def test_unique_slug(tmp_path):
     ("running", True, {"log"}),
     ("interrupted", True, {"log", "resume"}),
     ("error", True, {"log", "resume"}),
-    ("needs_review", True, {"log", "sing", "import_txt", "recalc", "regenerate", "editor", "accept"}),
-    ("needs_review", False, {"log", "sing", "import_txt", "recalc", "regenerate", "accept"}),
-    ("ready", True, {"log", "sing", "import_txt", "recalc", "regenerate", "editor"}),
-    ("ready", False, {"log", "sing", "import_txt", "recalc", "regenerate"}),
+    ("needs_review", True, {"log", "sing", "lyrics", "import_txt", "recalc", "regenerate", "editor", "accept"}),
+    ("needs_review", False, {"log", "sing", "lyrics", "import_txt", "recalc", "regenerate", "accept"}),
+    ("ready", True, {"log", "sing", "lyrics", "import_txt", "recalc", "regenerate", "editor"}),
+    ("ready", False, {"log", "sing", "lyrics", "import_txt", "recalc", "regenerate"}),
 ])
 def test_library_actions(status, editor, expected):
     assert P.library_actions(status, editor) == expected

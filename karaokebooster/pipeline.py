@@ -64,7 +64,8 @@ class Config:
     ultrasongs_dir: Path = ROOT.parent / "ultrasongs"
     reaper_exe: Path = Path(r"C:\Program Files\REAPER (x64)\reaper.exe")
     template: Path | None = None           # domyślnie songs/_szablon.rpp
-    osc_port: int = 9000
+    osc_port: int = 9000            # REAPER wysyła tu czas (podgląd tekstu nasłuchuje)
+    reaper_osc_port: int = 8000     # REAPER nasłuchuje tu (spacja w oknie tekstu = start/pauza)
     offset_ms: float = 0.0
     language: str = "pl"
     align_engine: str = "crepe"
@@ -224,7 +225,7 @@ def library_actions(status: str, has_editor: bool) -> set[str]:
     elif status in ("interrupted", "error"):
         actions.add("resume")
     elif status in ("needs_review", "ready"):
-        actions |= {"sing", "import_txt", "recalc", "regenerate"}
+        actions |= {"sing", "lyrics", "import_txt", "recalc", "regenerate"}
         if has_editor:
             actions.add("editor")
         if status == "needs_review":

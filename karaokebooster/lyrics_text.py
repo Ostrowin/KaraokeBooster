@@ -1,10 +1,13 @@
 """Tekst piosenki przed ultrasongs: rozwijanie powtórzeń, czyszczenie, pobieranie z tekstowo.pl.
 
-Song Studio (docs/designs/song-studio.md). Reguły czyszczenia działają w kolejności 2 → 1 → 3:
-  2. zwrotka będąca samą etykietą refrenu ("Ref.", "[Refren] x2") dostaje tekst pierwszego
-     refrenu; gdy refrenu nigdzie nie ma, zostaje REFRAIN_MARKER (okienko blokuje dodanie);
-  1. etykiety na początku zwrotki ("Ref.:", "[Refren]", "Zwrotka 1:") są usuwane;
-  3. "x2", "(x2)", "2x" na końcu linii zamieniane na składnię "/x2" z expand().
+Song Studio (docs/designs/song-studio.md). Czyszczenie:
+  - etykiety części ("Ref.:", "Refren (x2):", "2x Ref.", "[Zwrotka 2]") są usuwane; etykietą jest
+    tylko coś, co tak wygląda (dwukropek, nawias, kropka, krotność albo sama w linii);
+  - krotność przy etykiecie ("Ref. x2") albo w osobnej linii ("(x2)") powtarza zwrotkę / linię nad nią;
+  - zwrotka będąca samą etykietą refrenu ("Ref.", "Ref. x2") dostaje tekst pierwszego refrenu
+    (bez własnej krotności bierze krotność tamtego); gdy refrenu nigdzie nie ma, zostaje
+    REFRAIN_MARKER (okienko blokuje dodanie);
+  - "x2", "(x2)", "2x" na końcu linii zamieniane na składnię "/x2" z expand().
 """
 
 from __future__ import annotations
@@ -41,14 +44,29 @@ def expand(text: str) -> str:
 
 REFRAIN_MARKER = "!!! WKLEJ REFREN !!!"
 
-_REPEAT = r"(?:[x×]\s*(\d+)|(\d+)\s*[x×])"
-# etykieta refrenu, np. "Ref.", "Ref:", "Refren 2:", "[Ref]", "/Ref./", "(Refren)"
+# powtórzenie: "x2", "2x", "(x2)", "[2x]", "×2"
+_REPEAT = r"[\[(]?\s*(?:[x×]\s*\d+|\d+\s*[x×])\s*[\])]?"
+REPEAT_ONLY = re.compile(r"^\s*" + _REPEAT + r"\s*(?:razy)?\s*:?\s*$", re.IGNORECASE)
+REPEAT_AT_END = re.compile(r"(?:\s+|(?=[\[(]))" + _REPEAT + r"\s*$", re.IGNORECASE)
+
 _CHORUS = r"(?:ref(?:ren)?|refrain|chorus)"
 _LABEL_WORDS = _CHORUS + r"|zwrotka|verse|bridge|mostek|intro|outro|przedrefren|pre-?chorus"
+# Etykieta części piosenki, np. "Ref.:", "Refren (x2):", "2x Ref.", "[Zwrotka 2]", "/Ref./".
 LABEL = re.compile(
-    r"^\s*[\[(/]?\s*(?P<word>" + _LABEL_WORDS + r")(?!\w)\.?\s*\d*\s*\.?\s*[\])/]?\s*:?\s*",
+    r"^\s*(?:(?P<pre>\d+\s*[x×])\s+)?"
+    r"(?P<open>[\[(/])?\s*"
+    r"(?P<word>" + _LABEL_WORDS + r")(?!\w)(?P<dot>\.)?"
+    r"(?:\s*\d+(?!\s*[x×]))?\s*\.?"          # numer zwrotki/refrenu
+    r"(?:\s*(?P<rep>" + _REPEAT + r"))?"
+    r"\s*(?P<close>[\])/]\.?)?"
+    r"\s*(?P<colon>:)?"
+    r"\s*(?P<rest>.*)$",
     re.IGNORECASE)
-REPEAT_AT_END = re.compile(r"\s*[\[(]?\s*" + _REPEAT + r"\s*[\])]?\s*$", re.IGNORECASE)
+
+
+def _count(token: str | None) -> int | None:
+    m = re.search(r"\d+", token or "")
+    return int(m.group()) if m else None
 
 
 def _stanzas(text: str) -> list[list[str]]:
@@ -56,69 +74,84 @@ def _stanzas(text: str) -> list[list[str]]:
     return [[l.strip() for l in b.splitlines() if l.strip()] for b in blocks if b.strip()]
 
 
-def _label(line: str) -> tuple[str | None, str]:
-    """(słowo etykiety małymi literami albo None, reszta linii po etykiecie)."""
+def _label(line: str) -> tuple[str, int | None, str] | None:
+    """(słowo etykiety, liczba powtórzeń albo None, reszta linii) albo None, gdy to zwykła linia.
+
+    Etykietą jest tylko coś, co tak wygląda: stoi samo w linii albo ma dwukropek, nawias, kropkę
+    ("Ref.") lub krotność. "Zwrotka raz" na początku linii tekstu nie jest etykietą."""
     m = LABEL.match(line)
     if not m:
-        return None, line
-    return m.group("word").lower(), line[m.end():].strip()
+        return None
+    rest = m.group("rest").strip()
+    marked = any(m.group(g) for g in ("colon", "close", "dot", "pre", "rep")) or (m.group("open") and not rest)
+    if rest and not marked:
+        return None
+    return m.group("word").lower(), _count(m.group("pre") or m.group("rep")), rest
 
 
 def _is_chorus(word: str | None) -> bool:
     return word is not None and re.fullmatch(_CHORUS, word, re.IGNORECASE) is not None
 
 
-def _repeat_count(text: str) -> int | None:
-    m = REPEAT_AT_END.fullmatch(text) if text else None
-    if not m:
-        return None
-    return int(m.group(1) or m.group(2))
+def _with_repeat(line: str, n: int | None) -> str:
+    """Linia z markerem "/xN" dla expand() (zastępuje zapis "x2" na końcu linii)."""
+    if MARKER.search(line):
+        return line
+    line = REPEAT_AT_END.sub("", line).rstrip()
+    return f"{line} /x{n}" if n and n > 1 else line
+
+
+def _merge_repeat_lines(lines: list[str]) -> tuple[list[str], int | None]:
+    """Linia z samym "(x2)" dotyczy linii nad nią. Zwraca też krotność sprzed pierwszej linii."""
+    out: list[str] = []
+    leading = None
+    for line in lines:
+        if REPEAT_ONLY.match(line):
+            if out:
+                out[-1] = _with_repeat(out[-1], _count(line))
+            else:
+                leading = _count(line)
+        else:
+            out.append(line)
+    return out, leading
 
 
 def clean(text: str) -> str:
-    stanzas = _stanzas(text)
+    """Tekst z tekstowo.pl → tekst dla ultrasongs ze składnią "/xN" dla expand()."""
+    parsed: list[tuple[str | None, int | None, list[str]]] = []
+    for st in _stanzas(text):
+        lab = _label(st[0])
+        if lab:
+            word, count, rest = lab
+            lines = ([rest] if rest else []) + st[1:]
+        else:
+            word, count, lines = None, None, st
+        lines, leading = _merge_repeat_lines(lines)
+        parsed.append((word, count or leading, lines))
 
-    # reguła 2: zastępniki refrenu
-    chorus: list[str] | None = None
-    for st in stanzas:
-        word, rest = _label(st[0])
-        if _is_chorus(word) and (rest and _repeat_count(rest) is None or len(st) > 1):
-            chorus = ([rest] if rest else []) + st[1:]
-            break
+    # pierwszy refren z tekstem: źródło dla późniejszych samych "Ref."
+    chorus = next(((lines, count) for word, count, lines in parsed if _is_chorus(word) and lines), None)
+
     out: list[list[str]] = []
-    for st in stanzas:
-        word, rest = _label(st[0])
-        placeholder = len(st) == 1 and _is_chorus(word) and (not rest or _repeat_count(rest))
-        if placeholder:
-            if chorus is None:
-                out.append([REFRAIN_MARKER])
+    for word, count, lines in parsed:
+        if not lines:
+            if _is_chorus(word):
+                if chorus is None:
+                    out.append([REFRAIN_MARKER])
+                    continue
+                lines, count = list(chorus[0]), count or chorus[1]
+            elif count and out:
+                # samo "(x2)" w osobnej zwrotce: powtórz poprzednią
+                out[-1][-1] = _with_repeat(out[-1][-1], count)
                 continue
-            body = list(chorus)
-            n = _repeat_count(rest) if rest else None
-            if n and n > 1:
-                body[-1] = f"{body[-1]} /x{n}"
-            out.append(body)
-            continue
-        # reguła 1: etykieta na początku zwrotki
-        if word is not None:
-            st = ([rest] if rest else []) + st[1:]
-        if st:
-            out.append(st)
-
-    # reguła 3: powtórzenia na końcu linii
-    result = []
-    for st in out:
-        lines = []
-        for line in st:
-            if MARKER.search(line):
-                lines.append(line)
+            else:
                 continue
-            m = REPEAT_AT_END.search(line)
-            if m and m.start() > 0:
-                line = f"{line[: m.start()].rstrip()} /x{int(m.group(1) or m.group(2))}"
-            lines.append(line)
-        result.append("\n".join(lines))
-    return "\n\n".join(result) + "\n" if result else ""
+        lines = [_with_repeat(l, _count(REPEAT_AT_END.search(l).group()) if REPEAT_AT_END.search(l) else None)
+                 for l in lines]
+        if count and count > 1:
+            lines[-1] = _with_repeat(lines[-1], count)
+        out.append(lines)
+    return "\n\n".join("\n".join(st) for st in out) + "\n" if out else ""
 
 
 # --- tekstowo.pl ---------------------------------------------------------

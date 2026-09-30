@@ -173,3 +173,31 @@ def test_default_opener_is_urlopen(monkeypatch):
     with pytest.raises(LyricsNotFound):
         fetch("a", "b")
     assert calls and calls[0].get_header("User-agent").isascii()
+
+
+# --- krotności przy etykietach i w osobnych liniach (2026-09-30) ---
+
+@pytest.mark.parametrize("text,expected", [
+    ("Z1\nZ2\n\nRef. x2\nHej\nHo\n\nZ3", "Z1\nZ2\n\nHej\nHo\nHej\nHo\n\nZ3\n"),   # krotność nad refrenem
+    ("Ref. 2x:\nHej\nHo", "Hej\nHo\nHej\nHo\n"),
+    ("Refren (x2):\nHej\nHo", "Hej\nHo\nHej\nHo\n"),
+    ("[Refren x3]\nHej", "Hej\nHej\nHej\n"),
+    ("Hej\nHo\n(x2)", "Hej\nHo\nHej\nHo\n"),                                       # osobna linia
+    ("Hej\nHo\n\n(x2)\n\nDalej", "Hej\nHo\nHej\nHo\n\nDalej\n"),                   # osobna zwrotka
+    ("Hej\nHo\n2 razy", "Hej\nHo\n2 razy\n"),                                      # słownie: bez zmian
+    ("Ref.:\nHej\n\n2x Ref.", "Hej\n\nHej\nHej\n"),                                # krotność przed etykietą
+    ("Ref. x2:\nHej\n\nZwrotka:\nA\n\nRef.", "Hej\nHej\n\nA\n\nHej\nHej\n"),        # samo Ref. bierze krotność refrenu
+    ("Ref. x2:\nHej\n\nRef. x3", "Hej\nHej\n\nHej\nHej\nHej\n"),                   # własna krotność wygrywa
+    ("Raz\nDwa x2\nTrzy", "Raz\nDwa\nRaz\nDwa\nTrzy\n"),                           # w środku: od początku zwrotki
+])
+def test_repeats_expand_correctly(text, expected):
+    assert expand(clean(text)) == expected
+
+
+@pytest.mark.parametrize("line", ["Zwrotka raz", "Refren gra w radiu", "Intro do życia", "Chorus of angels"])
+def test_label_words_inside_normal_lines_are_kept(line):
+    assert clean(f"{line}\nDalej\n") == f"{line}\nDalej\n"
+
+
+def test_x_inside_words_is_not_repeat():
+    assert clean("Max2 grał\nTaxi x\n") == "Max2 grał\nTaxi x\n"

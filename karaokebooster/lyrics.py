@@ -81,6 +81,32 @@ def phrases(song: Song) -> list[list[Note]]:
     return [lines[k] for k in sorted(lines)]
 
 
+def display(syllable: str) -> str:
+    """Tekst sylaby na ekran: "~" w UltraStar oznacza przedłużenie poprzedniej sylaby, nie literę."""
+    return syllable.replace("~", "")
+
+
+def line_texts(lines: list[list[Note]]) -> list[str]:
+    return ["".join(display(n.syllable) for n in line).strip() for line in lines]
+
+
+def fit_font_size(texts: list[str], measure: Callable[[int, str], float], width: float,
+                  max_size: int, min_size: int = 12) -> int:
+    """Największy rozmiar czcionki (<= max_size), przy którym najdłuższa linia mieści się w `width`.
+    `measure(rozmiar, tekst)` zwraca szerokość w pikselach. Jeden rozmiar dla całej piosenki,
+    żeby tekst nie skakał między liniami."""
+    longest = max(texts, key=len, default="")
+    if not longest:
+        return max_size
+    size = max_size
+    while size > min_size and measure(size, longest) > width:
+        size -= 1
+    # najdłuższa znakowo nie musi być najszersza: sprawdź wszystkie przy znalezionym rozmiarze
+    while size > min_size and max(measure(size, t) for t in texts) > width:
+        size -= 1
+    return size
+
+
 def view_at(lines: list[list[Note]], t: float) -> LyricsView:
     if not lines:
         return LyricsView([], "", None)
@@ -98,8 +124,8 @@ def view_at(lines: list[list[Note]], t: float) -> LyricsView:
             state = "current"
         else:
             state = "future"
-        parts.append(Syllable(n.syllable, state))
-    next_line = "".join(n.syllable for n in lines[idx + 1]) if idx + 1 < len(lines) else ""
+        parts.append(Syllable(display(n.syllable), state))
+    next_line = "".join(display(n.syllable) for n in lines[idx + 1]) if idx + 1 < len(lines) else ""
     first = line[0].start_s
     countdown = first - t if t < first else None
     return LyricsView(parts, next_line.strip(), countdown)

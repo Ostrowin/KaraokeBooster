@@ -111,6 +111,7 @@ Ghost to cichy oryginalny wokal, który przycicha, gdy śpiewasz ([decyzja 0007]
 ## Blok H: tekst na ekranie (ok. 10 min)
 
 - [ ] REAPER: Options → Preferences → Control/OSC/web → **Add** → Control surface mode: **OSC (Open Sound Control)**. Lista zawiera głównie kontrolery sprzętowe, więc OSC trzeba znaleźć przewijając (albo wcisnąć O po rozwinięciu). Pattern config: **Default**. Mode: Configure device IP + local port. Device IP: **127.0.0.1**, Device port: **9000**. Zaznacz wysyłanie.
+- [ ] W tym samym oknie ustaw **Local listen port: 8000** (REAPER nasłuchuje). Dzięki temu spacja w oknie tekstu na pełnym ekranie włącza i pauzuje odtwarzanie w REAPER (Song Studio). Dodane 2026-09-30.
 - [ ] W terminalu:
   ```bash
   cd C:\Projects\Private\KaraokeBooster

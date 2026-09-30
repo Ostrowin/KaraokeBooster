@@ -26,6 +26,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from karaokebooster import lyrics_text  # noqa: E402
 from karaokebooster import pipeline as P  # noqa: E402
+from karaokebooster.ui import dpi_aware  # noqa: E402
 
 TOOLS = Path(__file__).resolve().parent
 AUDIO_TYPES = [("Audio", "*.mp3 *.wav *.flac *.ogg *.m4a"), ("Wszystkie pliki", "*.*")]
@@ -237,7 +238,7 @@ class SongStudio:
         bar = ttk.Frame(f)
         bar.grid(row=1, column=0, sticky="ew", pady=6)
         self.buttons: dict[str, ttk.Button] = {}
-        for key, label in (("sing", "Śpiewaj"), ("log", "Log"), ("resume", "Wznów"),
+        for key, label in (("sing", "Śpiewaj"), ("lyrics", "Tekst"), ("log", "Log"), ("resume", "Wznów"),
                            ("editor", "Edytor nut"), ("import_txt", "Importuj .txt"), ("recalc", "Przelicz"),
                            ("accept", "Akceptuj mimo to"), ("regenerate", "Generuj ponownie"),
                            ("unqueue", "Usuń z kolejki")):
@@ -251,8 +252,8 @@ class SongStudio:
         ttk.Label(foot, textvariable=self.template_info, foreground="#666").pack(side="left")
         ttk.Button(foot, text="Odśwież projekty z szablonu", command=self.refresh_projects).pack(side="right")
         ttk.Button(foot, text="Ustaw szablon z projektu…", command=self.set_template).pack(side="right", padx=6)
-        ttk.Label(f, text="\"Śpiewaj\" otwiera projekt w REAPER i tekst na pełnym ekranie (Esc zamyka). "
-                          "Start: spacja w REAPER.", foreground="#666").grid(row=3, column=0, sticky="w", pady=(6, 0))
+        ttk.Label(f, text="\"Śpiewaj\" otwiera projekt w REAPER i tekst na pełnym ekranie. W oknie tekstu: "
+                          "spacja = start/pauza, Esc = zamknij (\"Tekst\" otwiera je ponownie).", foreground="#666").grid(row=3, column=0, sticky="w", pady=(6, 0))
 
     def _song_row(self, d: Path) -> tuple[str, str, str, set[str]]:
         st = P.load_state(d)
@@ -320,6 +321,8 @@ class SongStudio:
         files = P.song_files(d, st)
         if key == "sing":
             self.sing(d, st, files)
+        elif key == "lyrics":
+            self.open_viewer(files)
         elif key == "log":
             self.show_log(slug)
         elif key == "resume":
@@ -407,12 +410,17 @@ class SongStudio:
         if P.song_status(st) == "needs_review" and not messagebox.askokcancel(
                 "Śpiewaj", "Wyrównanie nut ma ostrzeżenie:\n\n" + st["alignment"]["message"] + "\n\nŚpiewać mimo to?"):
             return
-        self.close_viewer()
         subprocess.Popen([str(self.cfg.reaper_exe), str(files["rpp"])])
+        self.open_viewer(files)
+
+    def open_viewer(self, files: dict[str, Path]) -> None:
+        """Tekst na pełnym ekranie; poprzedni podgląd jest zamykany (port OSC ma jednego odbiorcę)."""
+        self.close_viewer()
         pyw = Path(sys.executable).with_name("pythonw.exe")
         self.viewer = subprocess.Popen(
             [str(pyw if pyw.exists() else sys.executable), str(TOOLS / "lyrics_viewer.py"), str(files["txt"]),
-             "--port", str(self.cfg.osc_port), "--offset-ms", str(self.cfg.offset_ms), "--fullscreen"],
+             "--port", str(self.cfg.osc_port), "--reaper-port", str(self.cfg.reaper_osc_port),
+             "--offset-ms", str(self.cfg.offset_ms), "--fullscreen"],
             creationflags=NO_WINDOW)
 
     def close_viewer(self) -> None:
@@ -480,16 +488,6 @@ class SongStudio:
             return
         self.close_viewer()
         self.root.destroy()
-
-
-def dpi_aware() -> None:
-    """Ostre okno przy skalowaniu ekranu Windows (np. 150%)."""
-    if sys.platform == "win32":
-        try:
-            import ctypes
-            ctypes.windll.shcore.SetProcessDpiAwareness(1)
-        except (AttributeError, OSError):
-            pass
 
 
 def main() -> int:

@@ -32,7 +32,8 @@ Zamknięcie okienka w trakcie przerywa generowanie. Po ponownym uruchomieniu pio
 | błąd | **Log** pokazuje przyczynę, **Wznów** ponawia krok z błędem |
 | przerwana | **Wznów** |
 
-- **Śpiewaj** otwiera projekt w REAPER i tekst na pełnym ekranie (Esc zamyka tekst). Start odtwarzania: spacja w REAPER. Wymaga ustawionego OSC (blok H w [reaper-setup.md](reaper-setup.md)).
+- **Śpiewaj** otwiera projekt w REAPER i tekst na pełnym ekranie. W oknie tekstu: **spacja** = start/pauza, **Home** = od początku, **Esc** = zamknij tekst. Wymaga OSC w REAPER z portem wysyłania 9000 i portem nasłuchu 8000 (blok H w [reaper-setup.md](reaper-setup.md)).
+- **Tekst** otwiera ponownie sam tekst (np. po Esc), bez ponownego otwierania projektu.
 - **Przelicz** buduje od nowa MIDI i projekt (np. po ręcznej zmianie `.txt` w folderze piosenki).
 - **Generuj ponownie** puszcza ultrasongs jeszcze raz, np. w jakości dokładnej. Twoje poprawki `.txt` trafiają do kopii `.bak`.
 
@@ -61,7 +62,8 @@ Plik `karaokebooster.local.toml` w katalogu projektu (poza gitem). Domyślne war
 ultrasongs_dir = "C:/Projects/Private/ultrasongs"
 reaper_exe = "C:/Program Files/REAPER (x64)/reaper.exe"
 songs_dir = "C:/Projects/Private/KaraokeBooster/songs"
-osc_port = 9000
+osc_port = 9000        # REAPER wysyła tu czas
+reaper_osc_port = 8000 # REAPER tu nasłuchuje (spacja w oknie tekstu)
 offset_ms = 0        # opóźnienie tekstu, np. opóźnienie wyjścia audio z bloku B
 language = "pl"
 align_engine = "crepe"
