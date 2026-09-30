@@ -26,6 +26,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from karaokebooster import lyrics_text  # noqa: E402
 from karaokebooster import pipeline as P  # noqa: E402
+from karaokebooster import rpp  # noqa: E402
 from karaokebooster.ui import dpi_aware  # noqa: E402
 
 TOOLS = Path(__file__).resolve().parent
@@ -60,8 +61,8 @@ class Worker(threading.Thread):
         while True:
             job = self.jobs.get()
             try:
-                if not P.load_state(job.song_dir).get("queued"):
-                    continue  # zdjęta z kolejki
+                if not (job.song_dir / P.STATE_FILE).exists() or not P.load_state(job.song_dir).get("queued"):
+                    continue  # usunięta albo zdjęta z kolejki
                 self.current = job.song_dir
                 name = job.song_dir.name
                 P.run(job.song_dir, self.cfg, lambda k, t: self.ui.put((k, name, t)), job.force)
@@ -238,13 +239,19 @@ class SongStudio:
         bar = ttk.Frame(f)
         bar.grid(row=1, column=0, sticky="ew", pady=6)
         self.buttons: dict[str, ttk.Button] = {}
-        for key, label in (("sing", "Śpiewaj"), ("lyrics", "Tekst"), ("log", "Log"), ("resume", "Wznów"),
-                           ("editor", "Edytor nut"), ("import_txt", "Importuj .txt"), ("recalc", "Przelicz"),
-                           ("accept", "Akceptuj mimo to"), ("regenerate", "Generuj ponownie"),
-                           ("unqueue", "Usuń z kolejki")):
-            b = ttk.Button(bar, text=label, command=lambda k=key: self.do_action(k))
-            b.pack(side="left", padx=2)
-            self.buttons[key] = b
+        rows = (  # rząd 1: granie i kolejka, rząd 2: poprawki nut
+            (("sing", "Śpiewaj"), ("lyrics", "Tekst"), ("log", "Log"), ("resume", "Wznów"),
+             ("unqueue", "Usuń z kolejki"), ("delete", "Usuń piosenkę")),
+            (("editor", "Edytor nut"), ("import_txt", "Importuj .txt"), ("recalc", "Przelicz"),
+             ("accept", "Akceptuj mimo to"), ("regenerate", "Generuj ponownie")),
+        )
+        for buttons in rows:
+            row = ttk.Frame(bar)
+            row.pack(fill="x", pady=1)
+            for key, label in buttons:
+                b = ttk.Button(row, text=label, command=lambda k=key: self.do_action(k))
+                b.pack(side="left", padx=2)
+                self.buttons[key] = b
 
         foot = ttk.Frame(f)
         foot.grid(row=2, column=0, sticky="ew")
@@ -253,7 +260,7 @@ class SongStudio:
         ttk.Button(foot, text="Odśwież projekty z szablonu", command=self.refresh_projects).pack(side="right")
         ttk.Button(foot, text="Ustaw szablon z projektu…", command=self.set_template).pack(side="right", padx=6)
         ttk.Label(f, text="\"Śpiewaj\" otwiera projekt w REAPER i tekst na pełnym ekranie. W oknie tekstu: "
-                          "spacja = start/pauza, Esc = zamknij (\"Tekst\" otwiera je ponownie).", foreground="#666").grid(row=3, column=0, sticky="w", pady=(6, 0))
+                          "spacja = start/pauza, G = wokal, ←/→ = przesuń tekst, Esc = zamknij (\"Tekst\" otwiera ponownie).", foreground="#666").grid(row=3, column=0, sticky="w", pady=(6, 0))
 
     def _song_row(self, d: Path) -> tuple[str, str, str, set[str]]:
         st = P.load_state(d)
@@ -350,9 +357,24 @@ class SongStudio:
             self.refresh()
         elif key == "regenerate":
             self.regenerate(d, st)
+        elif key == "delete":
+            self.delete(d, st)
         elif key == "unqueue":
             P.set_queued(d, False)
             self.refresh()
+
+    def delete(self, d: Path, st: dict) -> None:
+        if not messagebox.askyesno(
+                "Usuń piosenkę", f"Usunąć \"{st['artist']} - {st['title']}\"?\n\n"
+                "Folder piosenki trafi do Kosza (można go stamtąd przywrócić). "
+                "Jeśli jej projekt jest otwarty w REAPER, najpierw go zamknij."):
+            return
+        self.close_viewer()
+        try:
+            P.delete_song(self.cfg, d)
+        except P.PipelineError as e:
+            messagebox.showerror("Usuń piosenkę", str(e))
+        self.refresh()
 
     def regenerate(self, d: Path, st: dict) -> None:
         win = tk.Toplevel(self.root)
@@ -416,11 +438,15 @@ class SongStudio:
     def open_viewer(self, files: dict[str, Path]) -> None:
         """Tekst na pełnym ekranie; poprzedni podgląd jest zamykany (port OSC ma jednego odbiorcę)."""
         self.close_viewer()
+        try:
+            ghost = rpp.track_number(files["rpp"].read_text(encoding="utf-8"), "ghost") or 0
+        except (OSError, rpp.RppError):
+            ghost = 0
         pyw = Path(sys.executable).with_name("pythonw.exe")
         self.viewer = subprocess.Popen(
             [str(pyw if pyw.exists() else sys.executable), str(TOOLS / "lyrics_viewer.py"), str(files["txt"]),
              "--port", str(self.cfg.osc_port), "--reaper-port", str(self.cfg.reaper_osc_port),
-             "--offset-ms", str(self.cfg.offset_ms), "--fullscreen"],
+             "--offset-ms", str(self.cfg.offset_ms), "--ghost-track", str(ghost), "--fullscreen"],
             creationflags=NO_WINDOW)
 
     def close_viewer(self) -> None:

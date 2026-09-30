@@ -80,14 +80,14 @@ def test_unique_slug(tmp_path):
 # --- reguły okienka (D13) ------------------------------------------------------------
 
 @pytest.mark.parametrize("status,editor,expected", [
-    ("queued", True, {"log", "unqueue"}),
+    ("queued", True, {"log", "unqueue", "delete"}),
     ("running", True, {"log"}),
-    ("interrupted", True, {"log", "resume"}),
-    ("error", True, {"log", "resume"}),
-    ("needs_review", True, {"log", "sing", "lyrics", "import_txt", "recalc", "regenerate", "editor", "accept"}),
-    ("needs_review", False, {"log", "sing", "lyrics", "import_txt", "recalc", "regenerate", "accept"}),
-    ("ready", True, {"log", "sing", "lyrics", "import_txt", "recalc", "regenerate", "editor"}),
-    ("ready", False, {"log", "sing", "lyrics", "import_txt", "recalc", "regenerate"}),
+    ("interrupted", True, {"log", "resume", "delete"}),
+    ("error", True, {"log", "resume", "delete"}),
+    ("needs_review", True, {"log", "sing", "lyrics", "import_txt", "recalc", "regenerate", "editor", "accept", "delete"}),
+    ("needs_review", False, {"log", "sing", "lyrics", "import_txt", "recalc", "regenerate", "accept", "delete"}),
+    ("ready", True, {"log", "sing", "lyrics", "import_txt", "recalc", "regenerate", "editor", "delete"}),
+    ("ready", False, {"log", "sing", "lyrics", "import_txt", "recalc", "regenerate", "delete"}),
 ])
 def test_library_actions(status, editor, expected):
     assert P.library_actions(status, editor) == expected
@@ -376,3 +376,30 @@ def test_make_template_from_project(cfg, tmp_path):
     text = target.read_text(encoding="utf-8")
     assert "<ITEM" not in text and "FXCHAIN" in text
     assert list(cfg.songs_dir.glob("_szablon.rpp.*.bak"))
+
+
+# --- usuwanie piosenki (do Kosza) ------------------------------------------------------
+
+def test_delete_song_uses_trash(cfg, audio):
+    d = new_song(cfg, audio)
+    trashed = []
+    P.delete_song(cfg, d, trash=lambda p: (trashed.append(p), shutil.rmtree(p)))
+    assert trashed == [d.resolve()] and not d.exists()
+    assert P.all_songs(cfg) == []
+
+
+def test_delete_refuses_running_song(cfg, audio):
+    d = new_song(cfg, audio)
+    st = P.load_state(d)
+    st["steps"]["ultrasongs"]["status"] = "running"
+    P.save_state(d, st)
+    with pytest.raises(P.PipelineError, match="generowana"):
+        P.delete_song(cfg, d, trash=lambda p: pytest.fail("nie wolno usuwać"))
+
+
+@pytest.mark.parametrize("target", ["songs_dir", "outside", "no_state"])
+def test_delete_refuses_non_song_folders(cfg, tmp_path, target):
+    paths = {"songs_dir": cfg.songs_dir, "outside": tmp_path, "no_state": cfg.songs_dir / "pusty"}
+    paths["no_state"].mkdir()
+    with pytest.raises(P.PipelineError, match="folder piosenki"):
+        P.delete_song(cfg, paths[target], trash=lambda p: pytest.fail("nie wolno usuwać"))

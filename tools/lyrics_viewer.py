@@ -3,6 +3,9 @@
 REAPER: Preferences -> Control/OSC/web -> Add -> OSC (Default.ReaperOSC),
 tryb "Configure device IP+local port", Device IP 127.0.0.1, Device port = --port.
 
+Klawisze: spacja start/pauza, Home od początku, G wokal oryginalny wł./wył., strzałki ←/→
+przesuwają tekst o 50 ms (z Shift o 10 ms; zapis w viewer.json obok piosenki), Esc zamyka.
+
 Użycie:
     .venv\\Scripts\\python tools\\lyrics_viewer.py piosenka.txt --port 9000
     .venv\\Scripts\\python tools\\lyrics_viewer.py piosenka.txt --demo   (bez REAPER)
@@ -11,6 +14,8 @@ Użycie:
 from __future__ import annotations
 
 import argparse
+import json
+import os
 import sys
 import threading
 import tkinter as tk
@@ -33,7 +38,7 @@ MAX_LINE_PT = 60   # górny limit; fit() zmniejsza tak, żeby najdłuższa linia
 MAX_NEXT_PT = 36
 
 
-def make_dispatcher(clock: TransportClock, lock: threading.Lock) -> Dispatcher:
+def make_dispatcher(clock: TransportClock, lock: threading.Lock, extra: dict | None = None) -> Dispatcher:
     def handler(fn):
         def _h(_addr, *args):
             if args:
@@ -46,11 +51,14 @@ def make_dispatcher(clock: TransportClock, lock: threading.Lock) -> Dispatcher:
     d.map("/play", handler(clock.on_play))
     d.map("/pause", handler(clock.on_pause_or_stop))
     d.map("/stop", handler(clock.on_pause_or_stop))
+    for address, fn in (extra or {}).items():
+        d.map(address, handler(fn))
     return d
 
 
-def start_osc(clock: TransportClock, lock: threading.Lock, port: int) -> ThreadingOSCUDPServer:
-    server = ThreadingOSCUDPServer(("127.0.0.1", port), make_dispatcher(clock, lock))
+def start_osc(clock: TransportClock, lock: threading.Lock, port: int,
+              extra: dict | None = None) -> ThreadingOSCUDPServer:
+    server = ThreadingOSCUDPServer(("127.0.0.1", port), make_dispatcher(clock, lock, extra))
     threading.Thread(target=server.serve_forever, daemon=True).start()
     return server
 
@@ -58,7 +66,8 @@ def start_osc(clock: TransportClock, lock: threading.Lock, port: int) -> Threadi
 # Akcje REAPER wysyłane przez OSC (wzorzec ACTION z Default.ReaperOSC: /action <numer>)
 ACTION_PLAY_PAUSE = 40073   # Transport: Play/pause
 ACTION_GO_TO_START = 40042  # Transport: Go to start of project
-HINT = "Spacja: start / pauza    Home: od początku    Esc: zamknij tekst"
+HINT = "Spacja: start/pauza   Home: od początku   G: wokal   ←/→: przesuń tekst   Esc: zamknij"
+OFFSET_STEP_MS, OFFSET_FINE_MS = 50, 10
 NO_REAPER = ("REAPER nie odpowiada na spację: ustaw w REAPER port nasłuchu OSC {port} "
              "(docs/reaper-setup.md, blok H) albo wciśnij spację w oknie REAPER.")
 
@@ -70,20 +79,57 @@ class ReaperRemote:
         self.port = port
         self.client = SimpleUDPClient("127.0.0.1", port) if port else None
 
-    def action(self, number: int) -> bool:
+    def send(self, address: str, value=1) -> bool:
         if not self.client:
             return False
         try:
-            self.client.send_message("/action", number)
+            self.client.send_message(address, value)
             return True
         except OSError:
             return False
 
+    def action(self, number: int) -> bool:
+        return self.send("/action", number)
+
+
+class SongSettings:
+    """Ustawienia okna tekstu dla jednej piosenki (viewer.json w jej folderze).
+
+    lead_ms: o ile tekst ma być wcześniej niż czas z REAPER (ujemne = później)."""
+
+    def __init__(self, path: Path | None):
+        self.path = path
+        self.lead_ms = 0.0
+        if path and path.exists():
+            try:
+                self.lead_ms = float(json.loads(path.read_text(encoding="utf-8")).get("lead_ms", 0))
+            except (OSError, ValueError, AttributeError):
+                pass
+
+    def save(self) -> None:
+        if not self.path:
+            return
+        tmp = self.path.with_suffix(".tmp")
+        tmp.write_text(json.dumps({"lead_ms": self.lead_ms}), encoding="utf-8")
+        os.replace(tmp, self.path)
+
+
+def lead_label(lead_ms: float) -> str:
+    if abs(lead_ms) < 0.5:
+        return "tekst: bez przesunięcia"
+    return f"tekst: {abs(lead_ms):.0f} ms {'wcześniej' if lead_ms > 0 else 'później'}"
+
 
 class ViewerApp:
     def __init__(self, root: tk.Tk, song, clock: TransportClock, lock: threading.Lock,
-                 remote: ReaperRemote | None = None):
+                 remote: ReaperRemote | None = None, settings: SongSettings | None = None,
+                 ghost_track: int = 0):
         self.root, self.clock, self.lock, self.remote = root, clock, lock, remote
+        self.settings = settings or SongSettings(None)
+        self.base_offset_s = clock.offset_s
+        self.ghost_track = ghost_track
+        self.ghost_muted: bool | None = None   # stan z REAPER (OSC /track/N/mute), None = nieznany
+        self._apply_offset()
         self.lines = phrases(song)
         self.texts = line_texts(self.lines)
         self.warning = ""
@@ -109,6 +155,12 @@ class ViewerApp:
         root.bind("<Configure>", self.fit)
         root.bind("<space>", lambda _e: self.send(ACTION_PLAY_PAUSE))
         root.bind("<Home>", lambda _e: self.send(ACTION_GO_TO_START))
+        root.bind("<Right>", lambda _e: self.shift(OFFSET_STEP_MS))
+        root.bind("<Left>", lambda _e: self.shift(-OFFSET_STEP_MS))
+        root.bind("<Shift-Right>", lambda _e: self.shift(OFFSET_FINE_MS))
+        root.bind("<Shift-Left>", lambda _e: self.shift(-OFFSET_FINE_MS))
+        for key in ("g", "G"):
+            root.bind(key, lambda _e: self.toggle_ghost())
         self._fitted_width = 0
         self.tick()
 
@@ -127,6 +179,29 @@ class ViewerApp:
             return m
         self.font.configure(size=fit_font_size(self.texts, measure(self.font), usable, MAX_LINE_PT, 14))
         self.next_font.configure(size=fit_font_size(self.texts, measure(self.next_font), usable, MAX_NEXT_PT, 10))
+
+    def _apply_offset(self) -> None:
+        with self.lock:
+            self.clock.offset_s = self.base_offset_s - self.settings.lead_ms / 1000
+
+    def shift(self, delta_ms: float) -> None:
+        """→ tekst wcześniej, ← później; zapis od razu, żeby wrócił przy następnym otwarciu."""
+        self.settings.lead_ms = round(self.settings.lead_ms + delta_ms)
+        self._apply_offset()
+        try:
+            self.settings.save()
+        except OSError:
+            self.warning = "Nie mogę zapisać przesunięcia (viewer.json)."
+
+    def on_ghost_mute(self, value: float) -> None:
+        self.ghost_muted = value >= 0.5
+
+    def toggle_ghost(self) -> None:
+        if not self.ghost_track:
+            self.warning = "Brak ścieżki ghost w projekcie."
+            return
+        if not self.remote or not self.remote.send(f"/track/{self.ghost_track}/mute/toggle"):
+            self.warning = NO_REAPER.format(port=self.remote.port if self.remote else "-")
 
     def send(self, action: int) -> None:
         if not self.remote or not self.remote.action(action):
@@ -156,7 +231,9 @@ class ViewerApp:
         self.next.configure(text=v.next_line)
         cd = f"   za {v.countdown_s:.1f} s" if v.countdown_s and v.countdown_s < 5 else ""
         state = f"{'▶' if playing else '⏸'} {t:6.1f} s{cd}"
-        self.info.configure(text=self.warning or f"{state}      {HINT}",
+        ghost = {None: "", True: "   wokal: wył.", False: "   wokal: WŁ."}[self.ghost_muted]
+        status = f"{state}{ghost}   {lead_label(self.settings.lead_ms)}"
+        self.info.configure(text=self.warning or f"{status}      {HINT}",
                             fg="#e57373" if self.warning else "#555555")
         self.root.after(30, self.tick)
 
@@ -171,6 +248,10 @@ def main(argv: list[str] | None = None) -> int:
                    help="opóźnij tekst o tyle ms (np. opóźnienie wyjścia audio)")
     p.add_argument("--demo", action="store_true", help="bez REAPER: startuje od 0 s")
     p.add_argument("--fullscreen", action="store_true", help="pełny ekran (Esc zamyka)")
+    p.add_argument("--ghost-track", type=int, default=0,
+                   help="numer ścieżki z oryginalnym wokalem w REAPER (klawisz G; 0 = brak)")
+    p.add_argument("--settings", type=Path,
+                   help="plik z przesunięciem tekstu (domyślnie viewer.json obok piosenki Song Studio)")
     args = p.parse_args(argv)
 
     try:
@@ -179,15 +260,23 @@ def main(argv: list[str] | None = None) -> int:
         print(f"BŁĄD: {e}", file=sys.stderr)
         return 1
 
+    settings_path = args.settings
+    if settings_path is None and (args.song.parent / "song.json").exists():
+        settings_path = args.song.parent / "viewer.json"
+    settings = SongSettings(settings_path)
     lock = threading.Lock()
     clock = TransportClock(offset_s=args.offset_ms / 1000)
+    holder: dict = {}   # aplikacja powstaje po serwerze OSC; handler sięga po nią przez holder
+    extra = {}
+    if args.ghost_track:
+        extra[f"/track/{args.ghost_track}/mute"] = lambda v: holder["app"].on_ghost_mute(v) if "app" in holder else None
     if args.demo:
         # w demo zegar sam "dostaje" /time, żeby nie stawał po STALE_S
         clock.on_time(0.0)
         clock.on_play(1)
     else:
         try:
-            start_osc(clock, lock, args.port)
+            start_osc(clock, lock, args.port, extra)
         except OSError as e:
             print(f"BŁĄD: nie mogę nasłuchiwać na porcie {args.port}: {e}", file=sys.stderr)
             return 1
@@ -196,7 +285,8 @@ def main(argv: list[str] | None = None) -> int:
     dpi_aware()
     root = tk.Tk()
     remote = None if args.demo else ReaperRemote(args.reaper_port)
-    app = ViewerApp(root, song, clock, lock, remote)
+    app = ViewerApp(root, song, clock, lock, remote, settings, args.ghost_track)
+    holder["app"] = app
     root.bind("<Escape>", lambda _e: root.destroy())
     if args.fullscreen:
         root.attributes("-fullscreen", True)

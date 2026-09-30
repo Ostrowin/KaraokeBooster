@@ -34,8 +34,21 @@ Zamknięcie okienka w trakcie przerywa generowanie. Po ponownym uruchomieniu pio
 
 - **Śpiewaj** otwiera projekt w REAPER i tekst na pełnym ekranie. W oknie tekstu: **spacja** = start/pauza, **Home** = od początku, **Esc** = zamknij tekst. Wymaga OSC w REAPER z portem wysyłania 9000 i portem nasłuchu 8000 (blok H w [reaper-setup.md](reaper-setup.md)).
 - **Tekst** otwiera ponownie sam tekst (np. po Esc), bez ponownego otwierania projektu.
+
+**Klawisze w oknie tekstu:**
+
+| Klawisz | Działanie |
+|---|---|
+| Spacja | start / pauza w REAPER |
+| Home | od początku |
+| G | oryginalny wokal (ścieżka ghost) wł./wył.; w nowym projekcie jest wyłączony |
+| → / ← | tekst wcześniej / później o 50 ms (z Shift o 10 ms) |
+| Esc | zamknij tekst |
+
+Przesunięcie zapisuje się dla każdej piosenki osobno (`viewer.json` w jej folderze) i wraca przy następnym otwarciu. Zmienia tylko to, kiedy podświetla się tekst; nuty dla korektora i dźwięk zostają bez zmian. Jeśli wszystkie piosenki wymagają podobnego przesunięcia (np. przez opóźnienie sterownika audio), wpisz je raz jako `offset_ms` w konfiguracji (ujemne = tekst wcześniej), a strzałkami dostrajaj tylko różnice.
 - **Przelicz** buduje od nowa MIDI i projekt (np. po ręcznej zmianie `.txt` w folderze piosenki).
 - **Generuj ponownie** puszcza ultrasongs jeszcze raz, np. w jakości dokładnej. Twoje poprawki `.txt` trafiają do kopii `.bak`.
+- **Usuń piosenkę** przenosi jej folder do Kosza Windows (da się przywrócić). Niedostępne, gdy piosenka się generuje.
 
 Przed Przelicz / Generuj / Odśwież **zamknij projekt piosenki w REAPER**, bo projekt jest przebudowywany.
 
@@ -64,7 +77,7 @@ reaper_exe = "C:/Program Files/REAPER (x64)/reaper.exe"
 songs_dir = "C:/Projects/Private/KaraokeBooster/songs"
 osc_port = 9000        # REAPER wysyła tu czas
 reaper_osc_port = 8000 # REAPER tu nasłuchuje (spacja w oknie tekstu)
-offset_ms = 0        # opóźnienie tekstu, np. opóźnienie wyjścia audio z bloku B
+offset_ms = 0          # przesunięcie tekstu dla wszystkich piosenek: dodatnie = później, ujemne = wcześniej
 language = "pl"
 align_engine = "crepe"
 ```

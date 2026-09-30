@@ -210,9 +210,32 @@ def build(template_text: str, podklad: ItemSpec, ghost: ItemSpec, wokal: ItemSpe
         raise RppError("Szablon nie ma ścieżki: " + ", ".join(f"'{m}'" for m in missing)
                        + " (potrzebne: Podklad, ghost, wokal).")
     tracks["podklad"].children.append(audio_item(podklad, 1))
+    _set_mute(tracks["ghost"], True)  # karaoke: oryginalny wokal na start wyłączony (klawisz G w tekście)
     tracks["ghost"].children.append(audio_item(ghost, 2))
     tracks["wokal"].children.append(midi_item(wokal, mid, 3))
     return dump(root) + "\n", warnings
+
+
+def _set_mute(track: Block, muted: bool) -> None:
+    """MUTESOLO <mute> <solo> <...>: pierwsze pole to wyciszenie."""
+    for i, c in enumerate(track.children):
+        if isinstance(c, str) and c.startswith("MUTESOLO"):
+            parts = c.split()
+            parts[1:2] = ["1" if muted else "0"]
+            track.children[i] = " ".join(parts + ["0"] * (4 - len(parts)))
+            return
+    track.children.insert(1, f"MUTESOLO {1 if muted else 0} 0 0")
+
+
+def track_number(project_text: str, name: str) -> int | None:
+    """Numer ścieżki (od 1, jak w REAPER i w OSC /track/N/...) o danej nazwie."""
+    n = 0
+    for c in parse(project_text).children:
+        if isinstance(c, Block) and c.name == "TRACK":
+            n += 1
+            if _key(track_name(c)) == _key(name):
+                return n
+    return None
 
 
 def strip_items(template_text: str) -> str:

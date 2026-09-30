@@ -133,3 +133,19 @@ def test_strip_items_makes_template():
                                    ('a "b"', "'a \"b\"'"), ("~", "~")])
 def test_quote(s, out):
     assert rpp._quote(s) == out
+
+
+def test_ghost_starts_muted_other_tracks_untouched():
+    text, _ = build(TEMPLATE.replace("NAME Podklad", "NAME Podklad\n    MUTESOLO 0 0 0"))
+    t = tracks(text)
+    assert "MUTESOLO 1 0 0" in t["ghost"].children
+    assert "MUTESOLO 0 0 0" in t["podklad"].children
+    text, _ = build(TEMPLATE.replace("NAME ghost", "NAME ghost\n    MUTESOLO 0 1 0"))
+    assert "MUTESOLO 1 1 0" in tracks(text)["ghost"].children   # solo z szablonu zostaje
+
+
+def test_track_number():
+    text, _ = build()
+    assert rpp.track_number(text, "ghost") == 2
+    assert rpp.track_number(text, "Podkład") == 1
+    assert rpp.track_number(text, "chórki") is None

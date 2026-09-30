@@ -20,6 +20,8 @@ from typing import Callable
 from .ultrastar import Note, Song
 
 STALE_S = 1.0
+HOLD_S = 1.0   # ile skończona linia zostaje na ekranie
+LEAD_S = 0.5   # ...ale ustępuje następnej najpóźniej tyle przed jej startem
 
 
 class TransportClock:
@@ -110,11 +112,13 @@ def fit_font_size(texts: list[str], measure: Callable[[int, str], float], width:
 def view_at(lines: list[list[Note]], t: float) -> LyricsView:
     if not lines:
         return LyricsView([], "", None)
-    idx = len(lines) - 1
-    for i, line in enumerate(lines):
-        if t < line[-1].end_s:
+    # Linia zostaje na ekranie chwilę po końcu (ostatnia sylaba zdąży się podświetlić),
+    # ale ustępuje następnej najpóźniej LEAD_S przed jej startem, żeby było widać, co śpiewać.
+    idx = 0
+    for i in range(1, len(lines)):
+        prev_end, next_start = lines[i - 1][-1].end_s, lines[i][0].start_s
+        if t >= max(prev_end, min(prev_end + HOLD_S, next_start - LEAD_S)):
             idx = i
-            break
     line = lines[idx]
     parts = []
     for n in line:

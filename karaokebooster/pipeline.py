@@ -220,6 +220,8 @@ STATUS_LABELS = {
 def library_actions(status: str, has_editor: bool) -> set[str]:
     """Przyciski aktywne dla piosenki (tabela statusów z projektu)."""
     actions = {"log"}
+    if status != "running":
+        actions.add("delete")
     if status == "queued":
         actions.add("unqueue")
     elif status in ("interrupted", "error"):
@@ -292,6 +294,38 @@ def import_txt(song_dir: Path, src: Path) -> Path | None:
     bak = _backup(dst) if dst.exists() else None
     shutil.copyfile(src, dst)
     return bak
+
+
+def delete_song(cfg: Config, song_dir: Path, trash: Callable[[Path], None] | None = None) -> None:
+    """Przenosi folder piosenki do Kosza (da się przywrócić). Tylko foldery piosenek z songs_dir."""
+    song_dir = song_dir.resolve()
+    if song_dir.parent != cfg.songs_dir.resolve() or not (song_dir / STATE_FILE).exists():
+        raise PipelineError(f"To nie jest folder piosenki: {song_dir}")
+    if song_status(load_state(song_dir)) == "running":
+        raise PipelineError("Piosenka jest właśnie generowana; usuń ją po zakończeniu.")
+    (trash or send_to_recycle_bin)(song_dir)
+
+
+def send_to_recycle_bin(path: Path) -> None:
+    """Kosz Windows przez SHFileOperationW (FO_DELETE + FOF_ALLOWUNDO), bez okien dialogowych."""
+    if sys.platform != "win32":
+        raise PipelineError("Kosz jest obsługiwany tylko w Windows.")
+    import ctypes
+    from ctypes import wintypes
+
+    class SHFILEOPSTRUCTW(ctypes.Structure):
+        _fields_ = [("hwnd", wintypes.HWND), ("wFunc", wintypes.UINT), ("pFrom", wintypes.LPCWSTR),
+                    ("pTo", wintypes.LPCWSTR), ("fFlags", ctypes.c_uint16), ("fAnyOperationsAborted", wintypes.BOOL),
+                    ("hNameMappings", ctypes.c_void_p), ("lpszProgressTitle", wintypes.LPCWSTR)]
+
+    op = SHFILEOPSTRUCTW()
+    op.wFunc = 3                                  # FO_DELETE
+    op.pFrom = str(path) + "\0"                   # lista zakończona podwójnym zerem
+    op.fFlags = 0x40 | 0x10 | 0x4 | 0x400         # ALLOWUNDO | NOCONFIRMATION | SILENT | NOERRORUI
+    result = ctypes.windll.shell32.SHFileOperationW(ctypes.byref(op))
+    if result != 0 or op.fAnyOperationsAborted or path.exists():
+        raise PipelineError(f"Nie udało się przenieść do Kosza (kod {result}). Zamknij pliki piosenki "
+                            "(np. projekt w REAPER) i spróbuj ponownie.")
 
 
 def accept(song_dir: Path) -> None:

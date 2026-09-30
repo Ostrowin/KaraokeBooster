@@ -222,3 +222,79 @@ def test_tilde_hidden_on_screen():
     assert line_texts(lines) == ["powiedzieć", "ciągnie"]
     v = view_at(lines, 0.1)
     assert "".join(s.text for s in v.line) == "powiedzieć" and v.next_line == "ciągnie"
+
+
+# --- linia zostaje po końcu, żeby ostatnia sylaba była widoczna -------------------
+
+def test_line_held_after_last_syllable(lines):
+    v = view_at(lines, 1.45)  # fraza 1 skończona o 1.4, fraza 2 od 2.0: przełączenie o 1.5
+    assert [(s.text, s.state) for s in v.line] == [("Za", "past"), ("żółć", "past")]
+    assert v.next_line == "gęślą"
+
+
+def test_line_switches_lead_before_next_start():
+    # przerwa 3 s: linia trzyma się 1 s po końcu, potem następna
+    song = parse("#BPM:300\n#GAP:0\n: 0 4 0 a\n- 10\n: 80 4 0 b\nE\n")  # a: 0-0.2, b: 4.0-4.2
+    ls = phrases(song)
+    assert [s.text for s in view_at(ls, 1.1).line] == ["a"]
+    assert [s.text for s in view_at(ls, 1.25).line] == ["b"]
+
+
+def test_short_gap_switches_at_line_end():
+    song = parse("#BPM:300\n#GAP:0\n: 0 4 0 a\n- 5\n: 6 4 0 b\nE\n")  # a: 0-0.2, b: 0.3-0.5
+    ls = phrases(song)
+    assert [s.text for s in view_at(ls, 0.19).line] == ["a"]
+    assert [s.text for s in view_at(ls, 0.21).line] == ["b"]
+
+
+# --- przesunięcie tekstu i wokal (klawisze w oknie tekstu) --------------------------
+
+def test_song_settings_roundtrip(tmp_path):
+    f = tmp_path / "viewer.json"
+    s = lyrics_viewer.SongSettings(f)
+    assert s.lead_ms == 0
+    s.lead_ms = 150
+    s.save()
+    assert lyrics_viewer.SongSettings(f).lead_ms == 150
+
+
+@pytest.mark.parametrize("content", ["", "nie json", "[1, 2]", '{"lead_ms": "abc"}'])
+def test_song_settings_broken_file_is_zero(tmp_path, content):
+    f = tmp_path / "viewer.json"
+    f.write_text(content, encoding="utf-8")
+    assert lyrics_viewer.SongSettings(f).lead_ms == 0
+
+
+def test_song_settings_without_path_does_not_save():
+    s = lyrics_viewer.SongSettings(None)
+    s.lead_ms = 50
+    s.save()  # nic nie robi, bez błędu
+
+
+@pytest.mark.parametrize("ms,text", [(0, "tekst: bez przesunięcia"), (150, "tekst: 150 ms wcześniej"),
+                                     (-60, "tekst: 60 ms później")])
+def test_lead_label(ms, text):
+    assert lyrics_viewer.lead_label(ms) == text
+
+
+def test_lead_moves_text_earlier(ft):
+    c = TransportClock(now=ft, offset_s=0.1)
+    c.on_time(10.0)
+    base = c.offset_s
+    c.offset_s = base - 0.25   # lead 250 ms, jak w ViewerApp._apply_offset
+    assert c.position() == pytest.approx(10.15)
+
+
+def test_dispatcher_extra_handler_for_ghost_mute():
+    c = TransportClock()
+    got = []
+    d = lyrics_viewer.make_dispatcher(c, threading.Lock(), {"/track/2/mute": got.append})
+    d.call_handlers_for_packet(_msg("/track/2/mute", 1.0), ("127.0.0.1", 1))
+    assert got == [1.0]
+
+
+def _msg(address, value):
+    from pythonosc.osc_message_builder import OscMessageBuilder
+    b = OscMessageBuilder(address)
+    b.add_arg(value)
+    return b.build().dgram
